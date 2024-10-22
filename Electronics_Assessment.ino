@@ -14,11 +14,21 @@ const int relayPin = 8;  // Pin D8 for relay
 // Define a temperature threshold for relay activation
 const int tempThreshold = 20;
 
+// Define the pin for the button
+const int buttonPin = 3;  // Pin D3 for button (for interrupt)
+
+// Volatile variable to track the last time the button was pressed
+volatile unsigned long lastPressed = 0;
+volatile bool buttonPressedFlag = false;  // Track if the button was pressed
+
+// Variable to track the backlight state
+bool backlightOn = false;
+
 void setup() {
   // Initialize the LCD
   lcd.init();
-  lcd.backlight();
-  
+  lcd.backlight();  // Backlight starts on initially
+
   // Set up serial communication for debugging (optional)
   Serial.begin(9600);
   
@@ -26,6 +36,12 @@ void setup() {
   pinMode(relayPin, OUTPUT);
   digitalWrite(relayPin, LOW);  // Make sure the relay is off initially
   
+  // Set the button pin as an input with a pull-up resistor
+  pinMode(buttonPin, INPUT_PULLUP);
+
+  // Attach interrupt to the button pin, triggering on a falling edge (button press)
+  attachInterrupt(digitalPinToInterrupt(buttonPin), buttonPressed, FALLING);
+
   // Print a welcome message to the LCD
   lcd.setCursor(3, 0);
   lcd.print("DHT11 Sensor");
@@ -42,6 +58,14 @@ void setup() {
 void loop() {
   int temperature = 0;
   int humidity = 0;
+
+  // Check if button was pressed
+  if (buttonPressedFlag) {
+    lastPressed = millis();      // Record the last time the button was pressed
+    lcd.backlight();             // Turn on the backlight
+    backlightOn = true;          // Set backlight state to on
+    buttonPressedFlag = false;   // Reset the button pressed flag
+  }
 
   // Read temperature and humidity from the DHT11 sensor
   int result = dht11.readTemperatureHumidity(temperature, humidity);
@@ -87,6 +111,23 @@ void loop() {
     Serial.println(DHT11::getErrorString(result));
   }
 
+  // Check if 5 seconds have passed since the button was pressed
+  if (backlightOn && millis() > lastPressed + 5000) {
+    lcd.noBacklight();  // Turn off the backlight
+    backlightOn = false;
+  }
+
   // Wait 2 seconds before the next reading
   delay(2000);
+}
+
+// ISR function to handle button press
+void buttonPressed() {
+  unsigned long currentMillis = millis();
+  
+  // Simple debounce logic: only act on the button press if 200ms have passed
+  if (currentMillis - lastPressed > 200) {
+    buttonPressedFlag = true;  // Set the flag to handle the button press in the loop
+    lastPressed = currentMillis;  // Update the lastPressed time
+  }
 }
