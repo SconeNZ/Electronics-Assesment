@@ -11,7 +11,7 @@ DHT11 dht11(2);
 // Define the pin for the relay
 const int relayPin = 8;  // Pin D8 for relay
 
-// Define a temperature threshold for relay activation
+// Define a temperature threshold for relay. To change to humidity - const int humidityThreshold = 70
 const int tempThreshold = 20;
 
 // Define the pin for the button
@@ -19,7 +19,7 @@ const int buttonPin = 3;  // Pin D3 for button (for interrupt)
 
 // Volatile variable to track the last time the button was pressed
 volatile unsigned long lastPressed = 0;
-volatile bool buttonPressedFlag = false;  // Track if the button was pressed
+volatile bool buttonPressed = false;  // Track if the button was pressed
 
 // Variable to track the backlight state
 bool backlightOn = false;
@@ -29,7 +29,7 @@ void setup() {
   lcd.init();
   lcd.backlight();  // Backlight starts on initially
 
-  // Set up serial communication for debugging (optional)
+  // Set up serial communication 
   Serial.begin(9600);
   
   // Set the relay pin as an output
@@ -39,7 +39,7 @@ void setup() {
   // Set the button pin as an input with a pull-up resistor
   pinMode(buttonPin, INPUT_PULLUP);
 
-  // Attach interrupt to the button pin, triggering on a falling edge (button press)
+  // Attach interrupt to the button pin, triggering on a button press
   attachInterrupt(digitalPinToInterrupt(buttonPin), buttonPressed, FALLING);
 
   // Print a welcome message to the LCD
@@ -60,11 +60,11 @@ void loop() {
   int humidity = 0;
 
   // Check if button was pressed
-  if (buttonPressedFlag) {
+  if (buttonPressed) {
     lastPressed = millis();      // Record the last time the button was pressed
     lcd.backlight();             // Turn on the backlight
     backlightOn = true;          // Set backlight state to on
-    buttonPressedFlag = false;   // Reset the button pressed flag
+    buttonPressed = false;   // Reset the button pressed flag
   }
 
   // Read temperature and humidity from the DHT11 sensor
@@ -127,7 +127,7 @@ void buttonPressed() {
   
   // Simple debounce logic: only act on the button press if 200ms have passed
   if (currentMillis - lastPressed > 200) {
-    buttonPressedFlag = true;  // Set the flag to handle the button press in the loop
+    buttonPressed = true;  // Set the flag to handle the button press in the loop
     lastPressed = currentMillis;  // Update the lastPressed time
   }
 }
